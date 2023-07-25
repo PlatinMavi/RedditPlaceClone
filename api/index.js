@@ -3,8 +3,10 @@ const app = express()
 const { default: mongoose } = require("mongoose")
 require("dotenv").config()
 const userRoute = require("./routes/user")
+const canvasRoute = require("./routes/canvas")
 
 app.use("/",userRoute)
+app.use("/canvas", canvasRoute)
 
 mongoose.connect(process.env.URI)
 const connection = mongoose.connection

@@ -1,0 +1,1 @@
+Every 3 second, get updated from server.
