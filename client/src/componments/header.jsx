@@ -29,14 +29,15 @@ export default function Header() {
       credentials: "include",
       method: "POST",
     }).then(() => {
-      setUserInfo(null); // Clear user info after successful logout
+      setUserInfo(null);
+      window.location.reload(); // Reload the page after successful logout
     });
   }
 
   const username = userInfo?.username;
 
   return (
-    <header className="flex justify-between font-bold text-2xl p-4 bg-slate-300">
+    <header className="flex justify-between font-bold text-2xl p-4 bg-white">
       <Link to="/" className="logo">
         Place
       </Link>
