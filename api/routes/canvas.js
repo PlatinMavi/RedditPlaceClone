@@ -8,36 +8,58 @@ require("dotenv").config();
 router.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 router.use(express.json());
 
-router.post("/putpixel", async (req, res) => {
-    const { user, x_coordinate, y_coordinate, color } = req.body;
+const TEN_SECONDS = 10000; // 10 seconds in milliseconds
 
-    try {
+router.post("/putpixel", async (req, res) => {
+  const { user, x_coordinate, y_coordinate, color } = req.body;
+
+  try {
+    // Check the user's lastPixelTime
+    const currentUser = await UserModel.findById(user);
+
+    if (currentUser && currentUser.lastPixelTime) {
+      const currentTime = new Date().getTime();
+      const timeElapsed = currentTime - currentUser.lastPixelTime.getTime();
+
+      if (timeElapsed < TEN_SECONDS) {
+        const timeRemaining = TEN_SECONDS - timeElapsed;
+        return res
+          .status(429)
+          .json({ error: "Please wait before placing another pixel.", timeRemaining });
+      }
+    }
+
     // Search for a Pixel with the given x and y coordinates
     let pixel = await PixelModel.findOne({ x: x_coordinate, y: y_coordinate });
 
     if (pixel) {
-        // If the pixel already exists, update its user and color
-        pixel.user = user;
-        pixel.color = color;
+      // If the pixel already exists, update its user and color
+      pixel.user = user;
+      pixel.color = color;
     } else {
-        // If the pixel doesn't exist, create a new one
-        pixel = new PixelModel({
+      // If the pixel doesn't exist, create a new one
+      pixel = new PixelModel({
         x: x_coordinate,
         y: y_coordinate,
         user: user,
         color: color,
-        });
+      });
     }
 
     // Save the pixel (either the updated one or the new one)
     await pixel.save();
 
+    // Update the lastPixelTime of the user
+    currentUser.lastPixelTime = new Date();
+    await currentUser.save();
+
     res.status(200).json({ message: "Pixel updated/created successfully." });
-    } catch (error) {
+  } catch (error) {
     console.error("Error updating/creating pixel:", error);
     res.status(500).json({ error: "Server error" });
-    }
+  }
 });
+
 
 router.get("/getcanvas", async(req,res)=>{
     const data = await PixelModel.find({}).populate('user', 'username')

@@ -15,7 +15,11 @@ const UserSchema = new mongoose.Schema({
     salt:{
         type:String,
         required:true
-    }
+    },
+    lastPixelTime: {
+        type: Date,
+        default: null,
+    },
 })
 
 const UserModel = mongoose.model("User", UserSchema)

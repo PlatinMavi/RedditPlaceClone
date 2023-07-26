@@ -2,12 +2,13 @@ import { useEffect, useContext, useRef } from "react";
 import { useState } from "react";
 import { UserContext } from "../usercontext";
 
-export default function Canvas() {
+export default function Canvas({ isLoading }) {
     const [currentPixel, setCurrentPixel] = useState("");
     const [currentColor, setCurrentColor] = useState("red");
     const { userInfo } = useContext(UserContext);
     const [count, setCount] = useState(0);
     const currentColorRef = useRef(currentColor); // Create a ref to hold the latest value
+    const [timeRemaining, setTimeRemaining] = useState(0);
 
     function Build(xw, yh, handlePutPixel) {
         const canvas = document.getElementById("canvas");
@@ -19,7 +20,7 @@ export default function Canvas() {
 
         for (let y = 0; y < yh; y++) {
             const row = document.createElement("div");
-            row.className = `w-2 h-2 bg-white border hover:cursor-pointer border-tranparent`; // Set the class name
+            row.className = `w-2 h-2 border hover:cursor-pointer border-tranparent`; // Set the class name
             row.id = `${x},${y}`;
             column.appendChild(row);
 
@@ -44,7 +45,7 @@ export default function Canvas() {
 
         for (let y = 0; y < yh; y++) {
             const row = document.createElement("div");
-            row.className = `w-2 h-2 bg-white border hover:cursor-pointer border-tranparent`; // Set the class name
+            row.className = `w-2 h-2 border hover:cursor-pointer border-tranparent`; // Set the class name
             row.id = `${x},${y}`;
             column.appendChild(row);
 
@@ -96,62 +97,90 @@ export default function Canvas() {
             pixel.classList.add(`bg-${element.color}-600`);
             }
         }catch{}
+        if (data?.timeRemaining) {
+            setTimeRemaining(data.timeRemaining);
+        } else {
+            setTimeRemaining(0); // Set to 0 if there is no timeRemaining property
+        }
     }
 
     useEffect(() => {
         // Update the PutPixel function whenever currentColor changes
-        function handlePutPixel(x, y) {
-            PutPixel(x, y, userInfo.id, currentColorRef.current);
+        async function handlePutPixel(x, y) {
+            try {
+              const response = await PutPixel(x, y, userInfo.id, currentColorRef.current);
+              if (response?.timeRemaining) {
+                alert(response.timeRemaining)
+                // If there is a timeRemaining property in the response, set the timeRemaining state
+                setTimeRemaining(response.timeRemaining);
+              }
+            } catch (error) {
+                alert(error)
+              console.error("Error putting pixel:", error);
+            }
         }
 
-        if (!userInfo || userInfo.id === undefined) {
-            if (count === 0) {
+        if (!isLoading) {
+            if (!userInfo || userInfo.id === undefined) {
+              if (count === 0) {
                 BuildNonUser(100, 100);
                 setCount(1);
                 UpdateBoard();
-            }
-        } else {
-            if (count === 0) {
+              }
+            } else {
+              if (count === 0) {
                 Build(100, 100, handlePutPixel);
                 setCount(1);
                 UpdateBoard();
+              }
             }
-    }
-
-    }, [userInfo, currentColorRef]); // Add userInfo and currentColorRef as dependencies
+          }
+        }, [userInfo,isLoading]) // Add userInfo and currentColorRef as dependencies
 
     useEffect(() => {
         currentColorRef.current = currentColor; // Update the ref whenever currentColor changes
     }, [currentColor]);
 
     return (
-        <div className="wrapper relative">
+        <>
+            <div className="wrapper relative">
             <div className="overflow-auto w-max mx-auto flex" id="canvas"></div>
-            <div className="absolute right-1/2 translate-x-16">
-                <h1 className="font-bold text-lg">Current Color: {currentColor}</h1>
-            </div>
-            <div className="bg-white">
-                <hr className="bg-black h-1" />
-                <div className="w-full h-24 text-center items-center justify-center flex flex-wrap gap-6">
-                <div
-                    className="w-8 h-8 bg-red-600 colorSelection hover:cursor-pointer"
-                    onClick={() => setCurrentColor("red")}
-                ></div>
-                <div
-                    className="w-8 h-8 bg-yellow-600 colorSelection hover:cursor-pointer"
-                    onClick={() => setCurrentColor("yellow")}
-                ></div>
-                <div
-                    className="w-8 h-8 bg-blue-600 colorSelection hover:cursor-pointer"
-                    onClick={() => setCurrentColor("blue")}
-                ></div>
-                <div
-                    className="w-8 h-8 bg-green-600 colorSelection hover:cursor-pointer"
-                    onClick={() => setCurrentColor("green")}
-                ></div>
+                <div className="absolute  translate-x-16">
+                <h1 className="font-bold text-lg flex">
+                    Current Color: {currentColor}
+                    
+                    <span> | Next pixel in: {Math.ceil(timeRemaining / 1000)} seconds</span>
+                    
+                    <p className="mx-2">
+                        x,y = {currentPixel}
+                    </p>
+                </h1>
+                </div>
+                <div className="bg-white">
+                    <hr className="bg-black h-1" />
+                    <div className="w-full h-24 text-center items-center justify-center flex flex-wrap gap-6">
+                    <div
+                        className="w-8 h-8 bg-red-600 colorSelection hover:cursor-pointer"
+                        onClick={() => setCurrentColor("red")}
+                    ></div>
+                    <div
+                        className="w-8 h-8 bg-yellow-600 colorSelection hover:cursor-pointer"
+                        onClick={() => setCurrentColor("yellow")}
+                    ></div>
+                    <div
+                        className="w-8 h-8 bg-blue-600 colorSelection hover:cursor-pointer"
+                        onClick={() => setCurrentColor("blue")}
+                    ></div>
+                    <div
+                        className="w-8 h-8 bg-green-600 colorSelection hover:cursor-pointer"
+                        onClick={() => setCurrentColor("green")}
+                    ></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
 
     );
     }
+
+    
